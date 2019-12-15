@@ -11,3 +11,8 @@ with `sbt run`, `sbt console` will start a Dotty REPL.
 
 For more information on the sbt-dotty plugin, see the
 [dotty-example-project](https://github.com/lampepfl/dotty-example-project/blob/master/README.md).
+
+
+### SML Signature to Dotty Trait / Type Classes
+
+There are two implementations for each chapters, `pfds.sig.ChapN.scala` and `pfds.ChapN.scala`. The former implements each SML Signature as is (see [ML-Style Scala](https://github.com/yawaramin/scala-modules/blob/master/README.md) and [sig/Chap2.scala](src/main/scala/pfds/sig/Chap2Sig.scala)). The latter code implements each chapter with 'Scala-tic' way that can be used with (hopefully) real Scala codes. 

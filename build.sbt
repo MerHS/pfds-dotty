@@ -6,9 +6,5 @@ lazy val root = project
     name := "pfds-dotty",
     version := "0.1.0",
 
-    scalaVersion := dottyVersion,
-
-    libraryDependencies ++= Seq(
-      "com.novocode" % "junit-interface" % "0.11" % "test",
-    )
+    scalaVersion := dottyVersion
   )
