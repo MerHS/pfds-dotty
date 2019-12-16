@@ -64,10 +64,10 @@ object Chap2 {
   }
 
   // Fig 2.7 Set type class
-  trait SSet[T[_]] {
-    def empty[A]: T[A]
-    def [A](s: T[A]) insert (x: A): T[A]
-    def [A](s: T[A]) member (x: A): Boolean
+  trait SSet[A, T[A]] {
+    def empty: T[A]
+    def (s: T[A]) insert (x: A): T[A]
+    def (s: T[A]) member (x: A): Boolean
   }
 
   // Fig 2.9 Unbalanced Set (used `Ordering` class directly)
@@ -75,28 +75,92 @@ object Chap2 {
     case E
     case T(l: UnbalancedSet[Elem], e: Elem, r: UnbalancedSet[Elem])
   }
+  
+  import UnbalancedSet._
+  import Ordering.Implicits.given
 
-  given SSet[UnbalancedSet] {
-    import UnbalancedSet._
-    import math.Ordering.Implicits.given
-
-    override def empty[A: Ordering] = E
-    override def [A: Ordering](s: UnbalancedSet[A]) insert (x: A): UnbalancedSet[A] =
+  given unbalancedSetImpl[Elem: Ordering]: SSet[Elem, UnbalancedSet] {
+    override def empty = E
+    override def (s: UnbalancedSet[Elem]) insert (x: Elem): UnbalancedSet[Elem] =
       s match {
         case E => T(E, x, E)
-        case T(l, y: A, r) =>
+        case T(l, y: Elem, r) =>
           if x < y then T(l.insert(x), y, r)
           else if y < x then T(l, y, r.insert(x))
           else s
       }
 
-    override def [A: Ordering](s: UnbalancedSet[A]) member (x: A): Boolean =
+    override def (s: UnbalancedSet[Elem]) member (x: Elem): Boolean =
       s match {
         case E => false
-        case T(l, y: A, r) =>
+        case T(l, y: Elem, r) =>
           if x < y then l.member(x)
           else if y < x then r.member(x)
           else true
       }
+  }
+  
+  // ex 2.2 [And91]
+  def [Elem: Ordering](s: UnbalancedSet[Elem]) memberW (x: Elem): Boolean = {
+    def memberWS(z: Elem, s: UnbalancedSet[Elem]): Boolean = s match {
+      case E => x == z
+      case T(l, y, r) => if x < y then memberWS(z, l) else memberWS(y, r)
+    }
+    s match {
+      case E => false
+      case T(_, y, _) => memberWS(y, s)
+    }
+  }
+
+  // ex 2.3
+  private case class InsertFail() extends Exception()
+  def [Elem: Ordering](s: UnbalancedSet[Elem]) insertThrow (x: Elem): UnbalancedSet[Elem] = {
+    def insertT(s: UnbalancedSet[Elem]): UnbalancedSet[Elem] = {
+      s match {
+        case E => T(E, x, E)
+        case T(l, y: Elem, r) =>
+          if (x < y) {
+            val li = insertT(l)
+            T(li, y, r)
+          } else if (y < x) {
+            val ri = insertT(r)
+            T(l, y, ri)
+          } else {
+            throw InsertFail()
+          }
+      }
+    }
+    try {
+      insertT(s)
+    } catch {
+      case InsertFail => s
+    }
+  }
+
+  // ex 2.4
+  def [Elem: Ordering](s: UnbalancedSet[Elem]) insertThrowW (x: Elem): UnbalancedSet[Elem] = {
+    def insertTW(s: UnbalancedSet[Elem], z: Elem): UnbalancedSet[Elem] = {
+      s match {
+        case E =>
+          if (x == z) throw InsertFail() else T(E, x, E)
+        case T(l, y, r) =>
+          if (x < y) {
+            val li = insertTW(l, z)
+            T(li, y, r)
+          } else {
+            val ri = insertTW(r, y)
+            T(l, y, ri)
+          }
+      }
+    }
+    
+    try {
+      s match {
+        case E => T(E, x, E)
+        case T(_, y, _) => insertTW(s, y)
+      }
+    } catch {
+      case InsertFail => s
+    }
   }
 }

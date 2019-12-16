@@ -80,7 +80,7 @@ trait Ord[T] {
 
 // Functors as class. (unlike the original code, we do not use functions because of extensions like memberW)
 // This will be implemented using type class in `pfds.ChapN.scala`
-class UnbalancedSet[E](val ord: Ord[E]) extends SSet[E] {
+class UnbalancedSet[E](given ord: Ord[E]) extends SSet[E] {
   enum Tree {
     case Leaf
     case Node(left: Tree, elem: E, right: Tree)
@@ -116,7 +116,10 @@ class UnbalancedSet[E](val ord: Ord[E]) extends SSet[E] {
         else
           memberWS(y, b)
     }
-    if s == Leaf then false else memberWS(x, s)
+    s match {
+      case Leaf => false
+      case Node(_, y, _) => memberWS(y, s)
+    }
   }
 }
 
