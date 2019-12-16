@@ -16,7 +16,7 @@ trait SStack[A] {
 
   def (a: A) :: (s: StackA): StackA = cons(a)(s)
   def (xs: StackA) ++ (ys: StackA): StackA = 
-    if isEmpty(xs) then ys else head(xs) :: tail(xs ++ ys)
+    if isEmpty(xs) then ys else head(xs) :: (tail(xs) ++ ys)
     
   def update(s: StackA, i: Int, y: A): StackA = {
     if (isEmpty(s))
