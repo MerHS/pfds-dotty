@@ -1,7 +1,8 @@
 package pfds
 
+import scala.language.implicitConversions
 import scala.collection.immutable._
-import math.Ordered
+import scala.math.Ordered
 
 object Chap2 {
   // Fig 2.1 Stack type class
@@ -37,26 +38,26 @@ object Chap2 {
   //   val empty = List()
   //   def [A](xs: List[A]) isEmpty: Boolean = xs.isEmpty
 
-  enum ConsList[+A] {
+  enum CustomStack[+A] {
     case NIL
-    case CONS(a: A, s: ConsList[A])
+    case CONS(a: A, s: CustomStack[A])
   }
 
-  given SStack[ConsList] {
-    import ConsList._
+  given SStack[CustomStack] {
+    import CustomStack._
 
     override def empty[A] = NIL
-    override def [A](xs: ConsList[A]) isEmpty = xs match {
+    override def [A](xs: CustomStack[A]) isEmpty = xs match {
       case NIL => true
       case _ => false
     }
 
-    override def [A, B >: A](elem: B) cons (s: ConsList[A]) = CONS(elem, s)
-    override def [A](s: ConsList[A]) head = s match {
+    override def [A, B >: A](elem: B) cons (s: CustomStack[A]) = CONS(elem, s)
+    override def [A](s: CustomStack[A]) head = s match {
       case NIL => throw Empty()
       case CONS(a, s) => a
     }
-    override def [A](s: ConsList[A]) tail = s match {
+    override def [A](s: CustomStack[A]) tail = s match {
       case NIL => throw Empty()
       case CONS(a, s) => s
     }
@@ -64,24 +65,38 @@ object Chap2 {
 
   // Fig 2.7 Set type class
   trait SSet[T[_]] {
-    val empty: T[Nothing]
-    def [A, B >: A](x: B) insert (s: T[A]): T[B]
-    def [A, B >: A](x: B) member (s: T[A]): Boolean
+    def empty[A]: T[A]
+    def [A](s: T[A]) insert (x: A): T[A]
+    def [A](s: T[A]) member (x: A): Boolean
   }
 
-  // Fig 2.9 Unbalanced Set (we use scala `Ordered` typeclass directly)
-  class UnbalancedSet[+Elem: Ordered](given SSet[UnbalancedSet]) {
-  
-  }
-  
-  object UnbalancedSet {
-    enum Tree[+Elem] {
-      case E
-      case T(l: Tree[Elem], e: Elem, r: Tree[Elem])
-    }
+  // Fig 2.9 Unbalanced Set (used `Ordering` class directly)
+  enum UnbalancedSet[+Elem] {
+    case E
+    case T(l: UnbalancedSet[Elem], e: Elem, r: UnbalancedSet[Elem])
   }
 
   given SSet[UnbalancedSet] {
-    
+    import UnbalancedSet._
+    import math.Ordering.Implicits.given
+
+    override def empty[A: Ordering] = E
+    override def [A: Ordering](s: UnbalancedSet[A]) insert (x: A): UnbalancedSet[A] =
+      s match {
+        case E => T(E, x, E)
+        case T(l, y: A, r) =>
+          if x < y then T(l.insert(x), y, r)
+          else if y < x then T(l, y, r.insert(x))
+          else s
+      }
+
+    override def [A: Ordering](s: UnbalancedSet[A]) member (x: A): Boolean =
+      s match {
+        case E => false
+        case T(l, y: A, r) =>
+          if x < y then l.member(x)
+          else if y < x then r.member(x)
+          else true
+      }
   }
 }
