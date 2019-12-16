@@ -163,4 +163,14 @@ object Chap2 {
       case InsertFail => s
     }
   }
+
+  // ex 2.5
+  def complete[Elem](x: Elem, d: Int): UnbalancedSet[Elem] = {
+    if (d <= 0) {
+      E
+    } else {
+      val child = complete(x, d - 1)
+      T(child, x, child)
+    }
+  }
 }
