@@ -64,67 +64,70 @@ object Chap2 {
   }
 
   // Fig 2.7 Set type class
-  trait SSet[A, T[A]] {
+  trait SSet[A, T[_]] {
     def empty: T[A]
     def (s: T[A]) insert (x: A): T[A]
     def (s: T[A]) member (x: A): Boolean
   }
 
   // Fig 2.9 Unbalanced Set (used `Ordering` class directly)
-  enum UnbalancedSet[+Elem] {
-    case E
-    case T(l: UnbalancedSet[Elem], e: Elem, r: UnbalancedSet[Elem])
+  enum Tree[+Elem] {
+    case Leaf
+    case Node(l: Tree[Elem], e: Elem, r: Tree[Elem])
   }
   
-  import UnbalancedSet._
+  import Tree._
   import Ordering.Implicits.given
 
-  given unbalancedSetImpl[Elem: Ordering]: SSet[Elem, UnbalancedSet] {
-    override def empty = E
-    override def (s: UnbalancedSet[Elem]) insert (x: Elem): UnbalancedSet[Elem] =
+  given unbalancedSetImpl[Elem: Ordering]: SSet[Elem, Tree] {
+    override def empty = Leaf
+    override def (s: Tree[Elem]) insert (x: Elem): Tree[Elem] =
       s match {
-        case E => T(E, x, E)
-        case T(l, y: Elem, r) =>
-          if x < y then T(l.insert(x), y, r)
-          else if y < x then T(l, y, r.insert(x))
+        case Leaf => Node(Leaf, x, Leaf)
+        case Node(l, y, r) =>
+          val ord = summon[Ordering[Elem]]
+          if ord.lt(x, y) then Node(l.insert(x), y, r)
+          else if ord.lt(y, x) then Node(l, y, r.insert(x))
           else s
       }
 
-    override def (s: UnbalancedSet[Elem]) member (x: Elem): Boolean =
+    override def (s: Tree[Elem]) member (x: Elem): Boolean =
       s match {
-        case E => false
-        case T(l, y: Elem, r) =>
-          if x < y then l.member(x)
-          else if y < x then r.member(x)
+        case Leaf => false
+        case Node(l, y, r) =>
+          val ord = summon[Ordering[Elem]]
+          if ord.lt(x, y) then l.member(x)
+          else if ord.lt(y, x) then r.member(x)
           else true
       }
   }
   
   // ex 2.2 [And91]
-  def [Elem: Ordering](s: UnbalancedSet[Elem]) memberW (x: Elem): Boolean = {
-    def memberWS(z: Elem, s: UnbalancedSet[Elem]): Boolean = s match {
-      case E => x == z
-      case T(l, y, r) => if x < y then memberWS(z, l) else memberWS(y, r)
+  def [Elem: Ordering](s: Tree[Elem]) memberW (x: Elem): Boolean = {
+    def memberWS(z: Elem, s: Tree[Elem]): Boolean = s match {
+      case Leaf => x == z
+      case Node(l, y, r) => if x < y then memberWS(z, l) else memberWS(y, r)
     }
     s match {
-      case E => false
-      case T(_, y, _) => memberWS(y, s)
+      case Leaf => false
+      case Node(_, y, _) => memberWS(y, s)
     }
   }
 
   // ex 2.3
   private case class InsertFail() extends Exception()
-  def [Elem: Ordering](s: UnbalancedSet[Elem]) insertThrow (x: Elem): UnbalancedSet[Elem] = {
-    def insertT(s: UnbalancedSet[Elem]): UnbalancedSet[Elem] = {
+  def [Elem: Ordering](s: Tree[Elem]) insertThrow (x: Elem): Tree[Elem] = {
+    def insertT(s: Tree[Elem]): Tree[Elem] = {
       s match {
-        case E => T(E, x, E)
-        case T(l, y: Elem, r) =>
-          if (x < y) {
+        case Leaf => Node(Leaf, x, Leaf)
+        case Node(l, y, r) =>
+          val ord = summon[Ordering[Elem]]
+          if (ord.lt(x, y)) {
             val li = insertT(l)
-            T(li, y, r)
-          } else if (y < x) {
+            Node(li, y, r)
+          } else if (ord.lt(y, x)) {
             val ri = insertT(r)
-            T(l, y, ri)
+            Node(l, y, ri)
           } else {
             throw InsertFail()
           }
@@ -138,26 +141,26 @@ object Chap2 {
   }
 
   // ex 2.4
-  def [Elem: Ordering](s: UnbalancedSet[Elem]) insertThrowW (x: Elem): UnbalancedSet[Elem] = {
-    def insertTW(s: UnbalancedSet[Elem], z: Elem): UnbalancedSet[Elem] = {
+  def [Elem: Ordering](s: Tree[Elem]) insertThrowW (x: Elem): Tree[Elem] = {
+    def insertTW(s: Tree[Elem], z: Elem): Tree[Elem] = {
       s match {
-        case E =>
-          if (x == z) throw InsertFail() else T(E, x, E)
-        case T(l, y, r) =>
+        case Leaf =>
+          if (x == z) throw InsertFail() else Node(Leaf, x, Leaf)
+        case Node(l, y, r) =>
           if (x < y) {
             val li = insertTW(l, z)
-            T(li, y, r)
+            Node(li, y, r)
           } else {
             val ri = insertTW(r, y)
-            T(l, y, ri)
+            Node(l, y, ri)
           }
       }
     }
     
     try {
       s match {
-        case E => T(E, x, E)
-        case T(_, y, _) => insertTW(s, y)
+        case Leaf => Node(Leaf, x, Leaf)
+        case Node(_, y, _) => insertTW(s, y)
       }
     } catch {
       case InsertFail => s
@@ -165,12 +168,80 @@ object Chap2 {
   }
 
   // ex 2.5
-  def complete[Elem](x: Elem, d: Int): UnbalancedSet[Elem] = {
+  def complete[Elem](x: Elem, d: Int): Tree[Elem] = {
     if (d <= 0) {
-      E
+      Leaf
     } else {
       val child = complete(x, d - 1)
-      T(child, x, child)
+      Node(child, x, child)
+    }
+  }
+
+  // n >= 3
+  def create2[Elem](x:Elem, n: Int): (Tree[Elem], Tree[Elem]) = {
+    if (n <= 0) {
+      (Leaf, Leaf)
+    } else if (n == 1) {
+      (Leaf, Node(Leaf, x, Leaf))
+    } else if (n % 4 == 3) { // 4k + 3 -> (k, k+1), (k+1, k+1)
+      val (l, r) = create2(x, n / 2) // (k, k+1)
+      return (Node(l, x, r), Node(r, x, r))
+    } else { // 4k + 1 -> (k, k), (k, k+1)
+      val (l, r) = create2(x, n / 2 + 1) // 2k+1
+      return (Node(l, x, l), Node(l, x, r))
+    }
+  }
+
+  def completeN[Elem](x: Elem, n: Int): Tree[Elem] = {
+    if (n <= 0) {
+      Leaf
+    } else if (n == 1) {
+      Node(Leaf, x, Leaf)
+    } else if (n % 2 == 0) {
+      val child = completeN(x, n / 2)
+      Node(child, x, child) 
+    } else {
+      val (l, r) = create2(x, n)
+      Node(l, x, r)
+    }
+  }
+
+  // ex 2.6, FiniteMap 
+  trait FiniteMap[K, V, T] {
+    def empty: T
+    def (m: T) bind (key: K, value: V): T
+
+    @throws[FiniteMap.NotFound[K]]
+    def (m: T) lookup (key: K): V
+  }
+
+  object FiniteMap {
+    case class NotFound[K](value: K) extends Exception
+  }
+
+  given treeFiniteMapImpl[K: Ordering, V]: FiniteMap[K, V, Tree[(K, V)]] {
+    override def empty = Leaf
+
+    override def (m: Tree[(K, V)]) insert (key: K, value: V): Tree[(K, V)] = {
+      m match {
+        case Leaf => Node(Leaf, (key, value), Leaf)
+        case Node(l, t@(key2, val2), r) => 
+          val ord = summon[Ordering[K]]
+          if ord.lt(key, key2) then Node(l.insert(key, value), t, r)
+          else if ord.lt(key2, key) then Node(l, t, r.insert(key, value))
+          else Node(l, (key, value), r)
+      }
+    }
+    
+    override def (m: Tree[(K, V)]) lookup(key: K): V = {
+      m match {
+        case Leaf => throw FiniteMap.NotFound(key)
+        case Node(l, t@(key2, value), r) => 
+          val ord = summon[Ordering[K]]
+          if ord.lt(key, key2) then l.lookup(key)
+          else if ord.lt(key2, key) then r.lookup(key)
+          else value
+      }
     }
   }
 }
