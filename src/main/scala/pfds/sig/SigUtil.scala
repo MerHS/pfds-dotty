@@ -1,4 +1,4 @@
-package pfds.sig 
+package net.kinetc.pfds.sig 
 
 object SigUtil {
   trait Piper {

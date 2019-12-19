@@ -1,6 +1,6 @@
-package pfds.sig 
+package net.kinetc.pfds.sig 
 
-import pfds.sig.SigUtil.given
+import net.kinetc.pfds.sig.SigUtil.given
 
 // Fig 2.1 Stack Signature
 trait SStack[A] {

@@ -1,4 +1,4 @@
-package pfds
+package net.kinetc.pfds
 
 import scala.language.implicitConversions
 import scala.collection.immutable._
@@ -10,7 +10,7 @@ object Chap2 {
     case class Empty() extends Exception()
     case class SubScriptError(i: Int) extends Exception()
 
-    def empty[A]: T[A]
+    def empty: T[Nothing]
     def [A](xs: T[A]) isEmpty: Boolean
 
     def [A, B >: A](elem: B) cons (s: T[A]): T[B]
@@ -46,7 +46,7 @@ object Chap2 {
   given SStack[CustomStack] {
     import CustomStack._
 
-    override def empty[A] = NIL
+    override def empty = NIL
     override def [A](xs: CustomStack[A]) isEmpty = xs match {
       case NIL => true
       case _ => false
@@ -222,18 +222,18 @@ object Chap2 {
   given treeFiniteMapImpl[K: Ordering, V]: FiniteMap[K, V, Tree[(K, V)]] {
     override def empty = Leaf
 
-    override def (m: Tree[(K, V)]) insert (key: K, value: V): Tree[(K, V)] = {
+    override def (m: Tree[(K, V)]) bind (key: K, value: V): Tree[(K, V)] = {
       m match {
         case Leaf => Node(Leaf, (key, value), Leaf)
         case Node(l, t@(key2, val2), r) => 
           val ord = summon[Ordering[K]]
-          if ord.lt(key, key2) then Node(l.insert(key, value), t, r)
-          else if ord.lt(key2, key) then Node(l, t, r.insert(key, value))
+          if ord.lt(key, key2) then Node(l.bind(key, value), t, r)
+          else if ord.lt(key2, key) then Node(l, t, r.bind(key, value))
           else Node(l, (key, value), r)
       }
     }
     
-    override def (m: Tree[(K, V)]) lookup(key: K): V = {
+    override def (m: Tree[(K, V)]) lookup (key: K): V = {
       m match {
         case Leaf => throw FiniteMap.NotFound(key)
         case Node(l, t@(key2, value), r) => 
