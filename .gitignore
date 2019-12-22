@@ -84,3 +84,5 @@ community-build/sbt-dotty-sbt
 
 # Vulpix output files
 *.check.out
+
+*.sc
